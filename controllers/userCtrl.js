@@ -1,115 +1,105 @@
-const User = require("../model/userModel");
-const asynceHandler = require("express-async-handler");
-const { generateToken } = require("../config/jwtToken");
+const { createUserService, loginUserService, getUserService } = require("../services/user.services")
+const bcrypt = require("bcrypt");
+const { generateToken } = require("../utils/jwtToken");
 
-
-const createUser = asynceHandler(async (req, res) => {
-    const email = req.body.email;
-    const findUser = await User.findOne({ email: email })
-    if (!findUser) {
-        // create user
-        const newUser = User.create(req.body)
-        res.json({
-            success: true,
-            message: "Successfully Created a User",
-            data: newUser
-        })
-    } else {
-        throw new Error('User Already Exist')
-    }
-})
-
-const loginUserCtrl = asynceHandler(async (req, res) => {
-    const { email, password } = req.body;
-    //check email and password
-    const findUser = await User.findOne({ email })
-    if (findUser && await findUser.isPasswordMatched(password)) {
-        res.json({
-            _id: findUser._id,
-            name: findUser.name,
-            email: findUser.email,
-            mobile: findUser.mobile,
-            token: generateToken(findUser._id)
-        })
-    } else {
-        throw new Error("Invalid Credentials")
-    }
-})
-
-// get all users
-const getAllUser = asynceHandler(async (req, res) => {
+exports.createUser = async(req, res)=>{
     try {
-        const getUsers = await User.find()
-        res.json({
-            success: true,
-            message: "Successfully Get All User",
-            data: getUsers
+        const result = await createUserService(req.body);
+        console.log(result)
+        res.status(200).json({
+            status: "success",
+            message: "create user success",
+            data: result
         })
     } catch (error) {
-
-    }
-})
-
-// get a single user
-const getSingleUser = asynceHandler(async (req, res) => {
-    const { id } = req.params;
-    try {
-        const getaUser = await User.findById(id);
-        res.json({
-            success: true,
-            message: "Successfully Get a User",
-            data: getaUser
+        res.status(401).json({
+            status: "fail",
+            message: "can't create user",
+            error: error.message
         })
-    } catch (error) {
-        throw new Error(error.message)
     }
-})
-
-// Delete a user
-const deleteSingleUser = asynceHandler(async (req, res) => {
-    const { id } = req.params;
-    try {
-        const deleteaUser = await User.findByIdAndDelete(id)
-        res.json({
-            success: true,
-            message: "Successfully Deleted User",
-            data: deleteaUser
-        })
-    } catch (error) {
-        throw new Error('error.message')
-    }
-})
-
-// update a user
-const updateSingleUser = asynceHandler(async (req, res) => {
-    const { _id } = req.user;
-    try {
-        const updateaUser = User.findByIdAndUpdate(
-            _id,
-            {
-                name: req?.body?.name,
-                email: req?.body?.email,
-                mobile: req?.body?.mobile
-            },
-            {
-                new: true
-            }
-
-        );
-        res.json(updateaUser)
-
-
-    } catch (error) {
-        throw new Error(error.message)
-    }
-})
-
-
-module.exports = {
-    createUser,
-    loginUserCtrl,
-    getAllUser,
-    getSingleUser,
-    deleteSingleUser,
-    updateSingleUser
 }
+exports.loginUser = async(req, res)=>{
+    try {
+        const {email, password} = req.body
+
+       if (!email, !password) {
+        return res.status(401).json({
+            status: "login fail",
+            error: "Please provide your credentials"
+        })
+       }
+       const user = await loginUserService(email);
+
+       if (!user) {
+        return res.status(401).json({
+            status: "login fail",
+            error: "Please create an account"
+        })
+       }
+
+       const isPasswordValid = bcrypt.compareSync(password, user.password)
+
+       if (!isPasswordValid) {
+        return res.status(403).json({
+            status: "login fail",
+            error: "Password is not correct"
+        })
+       }
+
+
+       if(user.status != "active"){
+        return res.status(401).json({
+            status: "login fail",
+            error: "your account not active"
+        })
+       }
+
+       const token = generateToken(user)
+
+       res.status(200).json({
+        status: "success",
+        message: "login success",
+        data:{
+            user,
+            token,
+        }
+       })
+
+    } catch (error) {
+        res.status(401).json({
+            status: "fail",
+            message: "can't create user",
+            error: error.message
+        })
+    }
+}
+exports.getUser = async(req, res)=>{
+    try {
+        const result = await getUserService()
+        res.status(200).json({
+            status: "success",
+            message: "Get user successfull",
+            data: result
+        })
+    } catch (error) {
+        res.status(400).json({
+            status: "fail",
+            message: "can't get user",
+            error: error.message
+        })
+    }
+}
+exports.getMe = async(req, res)=>{
+    try {
+        res.json(req.user)
+        console.log(req.user)
+    } catch (error) {
+        res.status(400).json({
+            status: "fail",
+            message: "can't get user",
+            error: error.message
+        })
+    }
+}
+

@@ -2,6 +2,7 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 const Project = require("./routes/projectRoute")
+const authRouter = require("./routes/authRoute")
 
 // Middleware
 app.use(express.json());
@@ -12,5 +13,6 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/v1/project", Project)
+app.use("/api/v1/user", authRouter)
 
 module.exports = app; 
