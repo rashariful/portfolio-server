@@ -17,7 +17,7 @@ var projectSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    liveLInk: {
+    liveLink: {
         type: String,
         
     },
@@ -28,6 +28,9 @@ var projectSchema = new mongoose.Schema({
     serverLink: {
         type: String,
        
+    },
+    thumbnail:{
+        type: String,
     },
 
     images: {
